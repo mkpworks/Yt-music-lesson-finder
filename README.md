@@ -141,6 +141,6 @@ Validation requires unique YouTube ids, the required lesson fields, and facet me
 
 ## Deploy
 
-Pushes to `main` run `.github/workflows/pages.yml`, which checks the data, builds the catalog, CSV, and `embed.js`, and deploys with `actions/configure-pages`, `actions/upload-pages-artifact`, and `actions/deploy-pages`.
+Pushes to `main` run `.github/workflows/pages.yml`, which checks the data, builds the catalog, CSV, and `embed.js`, and deploys with `actions/configure-pages`, `actions/upload-pages-artifact`, and `actions/deploy-pages`. Pull requests run the same check and build, and skip `actions/configure-pages`, because that action looks up the Pages site and fails until the source above is set.
 
 The repository owner has to set **Settings → Pages → Build and deployment → Source** to **GitHub Actions** before the first deploy can succeed.

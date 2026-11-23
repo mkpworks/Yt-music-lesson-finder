@@ -377,6 +377,7 @@ assert(deployJob.length > 0, "deploy job");
 assert(!deployJob.includes("actions/upload-pages-artifact"), "deploy job only deploys");
 assert(deployJob.includes("pages: write") && deployJob.includes("id-token: write"), "deploy permissions");
 assert(workflow.includes("scripts/export-csv.js") && workflow.includes("_site/data/catalog.csv"), "pages build publishes the csv");
+assert(/Configure GitHub Pages\n\s+if: github\.event_name != 'pull_request'\n\s+uses: actions\/configure-pages/.test(workflow), "pull requests do not require a Pages site");
 
 const built = path.join(os.tmpdir(), "ylf-embed-" + process.pid);
 fs.mkdirSync(built, { recursive: true });

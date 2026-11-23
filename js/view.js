@@ -23,6 +23,7 @@
     styleOf: "Only lessons that name an artist under in the style of are listed here.",
     tradition: "Only lessons that name a tradition are listed here.",
     topic: "A lesson is listed under each of its topics.",
+    level: "Lessons with no stated level are left out of this view.",
   };
 
   function esc(value) {
@@ -35,14 +36,14 @@
     }[ch]));
   }
 
-  function pickValue(value, allowed) {
+  function pickValue(value, allowed, labels) {
     const choices = allowed || [];
     if (value == null) return "All";
     const text = String(value).trim();
     if (!text || Catalog.fold(text) === "all") return "All";
     if (choices.includes(text)) return text;
     const folded = Catalog.fold(text);
-    const found = choices.find((item) => Catalog.fold(item) === folded || Catalog.fold(Catalog.labelOf(item)) === folded);
+    const found = choices.find((item) => Catalog.fold(item) === folded || Catalog.fold(Catalog.labelOf(item, labels)) === folded);
     return found || "All";
   }
 
@@ -55,14 +56,15 @@
       const match = (idx.channels || []).find((item) => item.channel_id === source.channel || Catalog.fold(item.channel_name) === folded);
       if (match) channel = match.channel_id;
     }
+    const labels = (idx.facets && idx.facets.labels) || {};
     return {
       channel,
-      instrument: pickValue(source.instrument, idx.instruments),
-      style: pickValue(source.style, idx.styles),
-      tradition: pickValue(source.tradition, idx.traditions),
-      topic: pickValue(source.topic, idx.topics),
-      structure: pickValue(source.structure, idx.structures),
-      level: pickValue(source.level, idx.levels),
+      instrument: pickValue(source.instrument, idx.instruments, labels.instruments),
+      style: pickValue(source.style, idx.styles, labels.styles),
+      tradition: pickValue(source.tradition, idx.traditions, labels.traditions),
+      topic: pickValue(source.topic, idx.topics, labels.topics),
+      structure: pickValue(source.structure, idx.structures, labels.structures),
+      level: pickValue(source.level, idx.levels, labels.levels),
       inTheStyleOf: pickValue(source.inTheStyleOf || source.in_the_style_of, idx.styleArtists),
     };
   }
@@ -255,6 +257,19 @@
       select.innerHTML = choices.join("");
     }
 
+    function facetLabel(value, key) {
+      const group = {
+        instrument: "instruments",
+        style: "styles",
+        tradition: "traditions",
+        topic: "topics",
+        structure: "structures",
+        level: "levels",
+      }[key] || key;
+      const labels = index.facets && index.facets.labels && index.facets.labels[group];
+      return Catalog.labelOf(value, labels);
+    }
+
     function searchButton(name, className, label) {
       const on = Catalog.fold(state.query) === Catalog.fold(name) ? " is-on" : "";
       const text = label || name;
@@ -263,7 +278,7 @@
 
     function pivotButton(key, value, className, label) {
       const on = state[key] === value ? " is-on" : "";
-      const text = label || Catalog.labelOf(value);
+      const text = label || facetLabel(value, key);
       return '<button type="button" class="' + className + on + '" data-action="pivot" data-key="' + esc(key) + '" data-value="' + esc(value) + '" aria-label="Filter by ' + esc(text) + '">' + esc(text) + "</button>";
     }
 
@@ -278,7 +293,7 @@
         ? searchButton(lesson.teacher, "name-link")
         : "";
       const styleHtml = lesson.style
-        ? '<button type="button" class="style-mark" data-action="pivot" data-key="style" data-value="' + esc(lesson.style) + '"><i style="background:' + styleColor(lesson.style) + '"></i>' + esc(Catalog.labelOf(lesson.style)) + "</button>"
+        ? '<button type="button" class="style-mark" data-action="pivot" data-key="style" data-value="' + esc(lesson.style) + '"><i style="background:' + styleColor(lesson.style) + '"></i>' + esc(facetLabel(lesson.style, "style")) + "</button>"
         : "";
       const chips = [];
       if (lesson.instrument) chips.push(pivotButton("instrument", lesson.instrument, "chip-btn"));
@@ -320,8 +335,8 @@
               searchButton(lesson.channel_name, "name-link") +
               teacherHtml +
               yearHtml +
-              '<span class="type-badge is-' + esc(lesson.level) + '">' + esc(Catalog.labelOf(lesson.level)) + "</span>" +
-              '<span class="type-badge">' + esc(Catalog.labelOf(lesson.structure)) + "</span>" +
+              (lesson.level ? '<span class="type-badge is-' + esc(lesson.level) + '">' + esc(facetLabel(lesson.level, "level")) + "</span>" : "") +
+              '<span class="type-badge">' + esc(facetLabel(lesson.structure, "structure")) + "</span>" +
               styleHtml +
               '<span class="time">' + esc(Catalog.formatDuration(lesson.duration_seconds)) + "</span>" +
             "</p>" +
@@ -726,13 +741,13 @@
       const count = index.channelCount[channel.channel_id] || 0;
       return '<option value="' + esc(channel.channel_id) + '">' + esc(channel.channel_name) + " · " + count + "</option>";
     }).join("");
-    fillSelect("instrument", index.instruments, Catalog.labelOf, (value) => Catalog.facetNote(index, "instruments", value));
-    fillSelect("style", index.styles, Catalog.labelOf);
+    fillSelect("instrument", index.instruments, (value) => facetLabel(value, "instrument"), (value) => Catalog.facetNote(index, "instruments", value));
+    fillSelect("style", index.styles, (value) => facetLabel(value, "style"));
     fillSelect("style-of", index.styleArtists);
-    fillSelect("tradition", index.traditions, Catalog.labelOf, (value) => Catalog.facetNote(index, "traditions", value));
-    fillSelect("topic", index.topics, Catalog.labelOf);
-    fillSelect("structure", index.structures, Catalog.labelOf);
-    fillSelect("level", index.levels, Catalog.labelOf);
+    fillSelect("tradition", index.traditions, (value) => facetLabel(value, "tradition"), (value) => Catalog.facetNote(index, "traditions", value));
+    fillSelect("topic", index.topics, (value) => facetLabel(value, "topic"));
+    fillSelect("structure", index.structures, (value) => facetLabel(value, "structure"));
+    fillSelect("level", index.levels, (value) => facetLabel(value, "level"));
     const seconds = lessons.reduce((sum, lesson) => sum + (lesson.duration_seconds || 0), 0);
     const stats = byId("stats");
     if (stats) {

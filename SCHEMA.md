@@ -37,9 +37,8 @@ Required on every lesson:
 | `duration_seconds` | Running time in seconds, from 1 through 86400. |
 | `style` | Broad style, such as blues or rock. |
 | `topics` | Non-empty array of topic names, such as technique, theory, or song tutorial. A lesson can have more than one. |
-| `instrument` | One slug. The current vocabulary lives in `facets.json`. |
+| `instrument` | One instrument token from `facets.json`. A slash form such as `production/DAW` is allowed. |
 | `structure` | `structured` (a course or series) or `casual`. |
-| `level` | `beginner`, `intermediate`, or `advanced`. |
 | `ytmusictrainer_url` | `https://ytmusictrainer.com/?video_id=<id>`. |
 
 Optional:
@@ -48,6 +47,7 @@ Optional:
 | --- | --- |
 | `in_the_style_of` | An artist the lesson is in the style of, such as Buddy Guy. Omit it when that does not apply. |
 | `tradition` | A tradition slug. Omit it when the lesson is not filed under one. |
+| `level` | `beginner`, `intermediate`, or `advanced` when the lesson states one. Omit it when the level is not stated. |
 | `series` | Course or series name. |
 | `description` | Short description. Newlines are allowed. |
 
@@ -55,16 +55,17 @@ Unknown fields are ignored.
 
 ### Instrument
 
-`facets.json` `instruments` is the allow-list when it is non-empty. The seed list is guitar, piano, bass, drums, saxophone, synthesizer, mallets, organ, production, and theory.
+`facets.json` `instruments` is the allow-list when it is non-empty. The catalog uses guitar, piano, bass, drums, saxophone, synthesizer, mallets, organ, `production/DAW`, voice, and general.
 
-- `theory` is for lessons that are not tied to one instrument.
-- `production` is for DAW software such as Ableton Live and for EDM beat-making.
+- `general` is for theory-first lessons that are not tied to one instrument.
+- `production/DAW` is for DAW software such as Ableton Live and for EDM beat-making.
+- `voice` is for singing lessons.
 
-Labels in the page are the slug with each word capitalized. `west-african` is not an instrument; traditions use that shape. Notes for individual instruments can live in `facets.notes.instruments` and are shown when that instrument filter is selected.
+`facets.labels` supplies the display name for each slug, such as "Production / DAW" and "General (theory / all instruments)". Without a label, the page capitalizes the slug. Notes for individual instruments can live in `facets.notes.instruments` and are shown when that instrument filter is selected.
 
 ### Tradition
 
-`tradition` is optional. `facets.json` `traditions` is the allow-list when it is non-empty. The seed list is western, jazz, indian-hindustani, indian-carnatic, arabic-maqam, microtonal, west-african, flamenco, and brazilian.
+`tradition` is optional. `facets.json` `traditions` is the allow-list when it is non-empty. The catalog uses western, indian-hindustani, indian-carnatic, arabic-maqam, microtonal, west-african, flamenco, brazilian, and latin-caribbean.
 
 Lessons with no `tradition` still appear in every other view. The Tradition browse hides them, and the filter for one tradition does not match them.
 

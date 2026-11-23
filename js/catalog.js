@@ -24,17 +24,23 @@
     return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(value || ""));
   }
 
-function labelOf(value) {
-  const text = String(value || "");
-  if (!text) return "";
-  if (isSlug(text)) {
-    return text.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+  // Slugs, plus a form such as production/DAW.
+  function isInstrument(value) {
+    return /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)?$/.test(String(value || ""));
   }
-  if (text === text.toLowerCase()) {
-    return text.split(" ").map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1) : part)).join(" ");
+
+  function labelOf(value, labels) {
+    const text = String(value || "");
+    if (!text) return "";
+    if (labels && typeof labels === "object" && typeof labels[text] === "string" && labels[text].trim()) return labels[text];
+    if (isSlug(text)) {
+      return text.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+    }
+    if (text === text.toLowerCase()) {
+      return text.split(/[\s/]+/).map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1) : part)).join(" ");
+    }
+    return text;
   }
-  return text;
-}
 
   function formatDuration(seconds) {
     const total = Math.max(0, Math.floor(Number(seconds) || 0));
@@ -75,6 +81,7 @@ function labelOf(value) {
   function normalizeFacets(facets) {
     const source = facets && typeof facets === "object" && !Array.isArray(facets) ? facets : {};
     const notes = source.notes && typeof source.notes === "object" && !Array.isArray(source.notes) ? source.notes : {};
+    const labels = source.labels && typeof source.labels === "object" && !Array.isArray(source.labels) ? source.labels : {};
     return {
       instruments: listOf(source.instruments),
       traditions: listOf(source.traditions),
@@ -86,6 +93,14 @@ function labelOf(value) {
       notes: {
         instruments: noteMap(notes.instruments),
         traditions: noteMap(notes.traditions),
+      },
+      labels: {
+        instruments: noteMap(labels.instruments),
+        traditions: noteMap(labels.traditions),
+        styles: noteMap(labels.styles),
+        topics: noteMap(labels.topics),
+        structures: noteMap(labels.structures),
+        levels: noteMap(labels.levels),
       },
     };
   }
@@ -311,8 +326,17 @@ function labelOf(value) {
       const channel = index && index.channelById && index.channelById[key];
       return channel ? channel.channel_name : key;
     }
-    if (mode === "style" || mode === "styleOf") return key;
-    return labelOf(key);
+    if (mode === "styleOf") return key;
+    const group = {
+      instrument: "instruments",
+      style: "styles",
+      tradition: "traditions",
+      topic: "topics",
+      structure: "structures",
+      level: "levels",
+    }[mode];
+    const labels = index && index.facets && index.facets.labels && group ? index.facets.labels[group] : null;
+    return labelOf(key, labels);
   }
 
   function orderFor(mode, index) {
@@ -513,6 +537,7 @@ function labelOf(value) {
     compareNames,
     fold,
     isSlug,
+    isInstrument,
     labelOf,
     formatDuration,
     yearKey,

@@ -41,9 +41,9 @@ function validateFacets(facets) {
     errors.push("facets must be an object");
     return errors;
   }
-  const slugLists = ["instruments", "traditions", "structures", "levels"];
+  const slugLists = ["traditions", "structures", "levels"];
   const phraseLists = ["styles", "topics", "in_the_style_of"];
-  for (const key of slugLists.concat(phraseLists)) {
+  for (const key of ["instruments"].concat(slugLists, phraseLists)) {
     if (facets[key] === undefined) continue;
     if (!Array.isArray(facets[key])) {
       errors.push("facets." + key + " must be an array");
@@ -58,6 +58,9 @@ function validateFacets(facets) {
       }
       if (seen.has(entry)) errors.push(where + " repeats " + entry);
       seen.add(entry);
+      if (key === "instruments" && !Catalog.isInstrument(entry)) {
+        errors.push(where + " must be an instrument slug");
+      }
       if (slugLists.includes(key) && !Catalog.isSlug(entry)) {
         errors.push(where + " must be a lowercase slug");
       }
@@ -164,7 +167,7 @@ function validate(lessons, facets) {
         topics.add(topic);
       });
     }
-    if (typeof lesson.instrument !== "string" || !Catalog.isSlug(lesson.instrument) || !allowed(lesson.instrument, facet.instruments, null)) {
+    if (typeof lesson.instrument !== "string" || !Catalog.isInstrument(lesson.instrument) || !allowed(lesson.instrument, facet.instruments, null)) {
       errors.push(where + " instrument must be a slug from facets.instruments when that list is present");
     }
     if (typeof lesson.structure !== "string" || !Catalog.STRUCTURES.includes(lesson.structure)) {
@@ -172,9 +175,9 @@ function validate(lessons, facets) {
     } else if (facet.structures.length && !facet.structures.includes(lesson.structure)) {
       errors.push(where + " structure must be listed in facets.structures");
     }
-    if (typeof lesson.level !== "string" || !Catalog.LEVELS.includes(lesson.level)) {
-      errors.push(where + " level must be beginner, intermediate, or advanced");
-    } else if (facet.levels.length && !facet.levels.includes(lesson.level)) {
+    if (lesson.level !== undefined && (typeof lesson.level !== "string" || !Catalog.LEVELS.includes(lesson.level))) {
+      errors.push(where + " level must be beginner, intermediate, or advanced when present");
+    } else if (lesson.level !== undefined && facet.levels.length && !facet.levels.includes(lesson.level)) {
       errors.push(where + " level must be listed in facets.levels");
     }
     if (lesson.series !== undefined && !cleanText(lesson.series, 200)) {

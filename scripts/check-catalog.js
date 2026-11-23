@@ -22,11 +22,17 @@ if (errors.length) {
 }
 assert(Array.isArray(lessons), "lessons array");
 
-const instrumentSamples = ["guitar", "piano", "bass", "drums", "saxophone", "synthesizer", "mallets", "organ", "production", "theory"];
-const traditionSamples = ["western", "jazz", "indian-hindustani", "indian-carnatic", "arabic-maqam", "microtonal", "west-african", "flamenco", "brazilian"];
+const instrumentSamples = ["guitar", "piano", "bass", "drums", "saxophone", "synthesizer", "mallets", "organ", "production/DAW", "general", "voice"];
+const traditionSamples = ["western", "indian-hindustani", "indian-carnatic", "arabic-maqam", "microtonal", "west-african", "flamenco", "brazilian", "latin-caribbean"];
 for (const name of instrumentSamples) assert(facets.instruments.includes(name), "facets instruments include " + name);
 for (const name of traditionSamples) assert(facets.traditions.includes(name), "facets traditions include " + name);
-assert(facets.notes.instruments.theory && facets.notes.instruments.production.includes("Ableton"), "instrument notes");
+assert(facets.notes.instruments.general && facets.notes.instruments["production/DAW"].includes("Ableton"), "instrument notes");
+assert(facets.labels.instruments["production/DAW"] && facets.labels.instruments.general && facets.labels.traditions["latin-caribbean"], "facet labels");
+assert(lessons.length === 575, "lesson count");
+assert(new Set(lessons.map((item) => item.channel_id)).size === 53, "channel count");
+const loadedIndex = Catalog.buildIndex(lessons, facets);
+assert(loadedIndex.channels.length === 53, "channel index");
+assert(Catalog.groupLessons(lessons, "channel", "channel", { index: loadedIndex }).length === 53, "channel browse");
 assert(JSON.stringify(facets.structures) === JSON.stringify(["structured", "casual"]));
 assert(JSON.stringify(facets.levels) === JSON.stringify(["beginner", "intermediate", "advanced"]));
 
@@ -79,11 +85,16 @@ function lesson(overrides) {
   return item;
 }
 
-const sample = lesson({ tradition: "jazz", in_the_style_of: "Buddy Guy" });
+const sample = lesson({ tradition: "latin-caribbean", in_the_style_of: "Buddy Guy" });
 assert(validate([sample], facets).length === 0, "a tradition lesson validates");
 assert(validate([lesson()], facets).length === 0, "tradition is optional");
-assert(validate([lesson({ instrument: "theory", topics: ["theory"] })], facets).length === 0, "theory instrument");
-assert(validate([lesson({ instrument: "production", topics: ["technique"] })], facets).length === 0, "production instrument");
+assert(validate([lesson({ instrument: "general", topics: ["theory"] })], facets).length === 0, "general instrument");
+assert(validate([lesson({ instrument: "production/DAW", topics: ["sound-design"] })], facets).length === 0, "production instrument");
+assert(validate([lesson({ instrument: "voice" })], facets).length === 0, "voice");
+assert(validate([lesson({ tradition: "latin-caribbean" })], facets).length === 0, "latin-caribbean");
+const unleveled = lesson();
+delete unleveled.level;
+assert(validate([unleveled], facets).length === 0, "level is optional");
 assert(validate([lesson({ instrument: "oud" })], facets).some((error) => error.includes("instrument")), "unknown instrument");
 assert(validate([lesson({ tradition: "baroque" })], facets).some((error) => error.includes("tradition")), "unknown tradition");
 const openFacets = { instruments: [], traditions: [], styles: [], topics: [], structures: [], levels: [], in_the_style_of: [] };
@@ -129,7 +140,9 @@ assert(Catalog.fold("José") === "jose");
 const facetIndex = Catalog.buildIndex([], facets);
 assert(JSON.stringify(facetIndex.instruments) === JSON.stringify(facets.instruments), "instrument order follows facets");
 assert(JSON.stringify(facetIndex.traditions) === JSON.stringify(facets.traditions), "tradition order follows facets");
-assert(Catalog.facetNote(facetIndex, "instruments", "production").includes("Ableton"));
+assert(Catalog.facetNote(facetIndex, "instruments", "production/DAW").includes("Ableton"));
+assert(Catalog.labelOf("production/DAW", facets.labels.instruments) === "Production / DAW");
+assert(Catalog.labelOf("general", facets.labels.instruments).includes("theory"));
 assert(Catalog.facetNote(facetIndex, "instruments", "All") === "");
 
 const alpha = lesson({
@@ -138,7 +151,7 @@ const alpha = lesson({
   channel_id: channelId("a"),
   teacher: "Ada Lovelace",
   instrument: "guitar",
-  tradition: "jazz",
+  tradition: "latin-caribbean",
   style: "blues",
   topics: ["technique", "theory"],
   level: "beginner",
@@ -156,7 +169,7 @@ const alphaAgain = lesson({
   instrument: "guitar",
   tradition: "western",
   style: "blues",
-  topics: ["song tutorial"],
+  topics: ["song-tutorial"],
   level: "advanced",
   structure: "casual",
   year: 0,
@@ -169,7 +182,7 @@ const beta = lesson({
   channel_id: channelId("b"),
   teacher: "José González",
   instrument: "piano",
-  style: "Folk, early",
+  style: "folk",
   topics: ["theory"],
   level: "intermediate",
   structure: "casual",
@@ -184,14 +197,14 @@ const index = Catalog.buildIndex(catalogLessons, facets);
 assert(index.channelCount[channelId("a")] === 2, "channel count");
 assert(index.channels[0].channel_name === "Alpha Channel");
 assert(index.instrumentCount.guitar === 2 && index.instrumentCount.piano === 1);
-assert(index.traditionCount.jazz === 1 && !index.traditionCount[""]);
+assert(index.traditionCount["latin-caribbean"] === 1 && !index.traditionCount[""]);
 
 assert(catalogLessons.filter((item) => Catalog.matches(item, { instrument: "guitar" }, index)).length === 2);
 assert(catalogLessons.filter((item) => Catalog.matches(item, { instrument: "piano" }, index)).length === 1);
-assert(catalogLessons.filter((item) => Catalog.matches(item, { tradition: "jazz" }, index)).map((item) => item.id).join() === alpha.id);
+assert(catalogLessons.filter((item) => Catalog.matches(item, { tradition: "latin-caribbean" }, index)).map((item) => item.id).join() === alpha.id);
 assert(catalogLessons.filter((item) => Catalog.matches(item, { tradition: "flamenco" }, index)).length === 0);
 assert(Catalog.matches(beta, { tradition: "All" }, index), "missing tradition still matches All");
-assert(!Catalog.matches(beta, { tradition: "jazz" }, index));
+assert(!Catalog.matches(beta, { tradition: "latin-caribbean" }, index));
 assert(Catalog.matches(alpha, { topic: "theory" }, index) && Catalog.matches(alpha, { topic: "technique" }, index));
 assert(Catalog.matches(alpha, { structure: "structured", level: "beginner", style: "blues", inTheStyleOf: "buddy guy" }, index));
 assert(Catalog.matches(beta, { channel: "Beta Lessons" }, index));
@@ -240,8 +253,8 @@ const cleared = FinderView.clearedFilters(index, {
 }, "Alpha Channel");
 assert(cleared.query === "Alpha Channel");
 assert(cleared.channel === "All" && cleared.instrument === "All" && cleared.tradition === "All", "a name search clears filters that hide hits");
-const preset = FinderView.presets({ tradition: "Jazz", instrument: "Theory", channel: "Alpha Channel", level: "nope" }, index);
-assert(preset.tradition === "jazz" && preset.instrument === "theory" && preset.channel === channelId("a") && preset.level === "All");
+const preset = FinderView.presets({ tradition: "Latin / Caribbean", instrument: "General (theory / all instruments)", channel: "Alpha Channel", level: "nope" }, index);
+assert(preset.tradition === "latin-caribbean" && preset.instrument === "general" && preset.channel === channelId("a") && preset.level === "All");
 
 function parseCsv(text) {
   assert(text.charCodeAt(0) === 0xFEFF, "csv starts with a UTF-8 BOM");
@@ -286,7 +299,7 @@ const traditionAt = sheet[0].indexOf("tradition");
 const betaRow = sheet.slice(1).find((row) => row[0] === beta.id);
 const alphaRow = sheet.slice(1).find((row) => row[0] === alpha.id);
 assert(betaRow[traditionAt] === "", "omitted tradition is blank");
-assert(alphaRow[traditionAt] === "jazz");
+assert(alphaRow[traditionAt] === "latin-caribbean");
 assert(alphaRow[sheet[0].indexOf("in_the_style_of")] === "Buddy Guy");
 assert(alphaRow[sheet[0].indexOf("topics")] === "technique; theory");
 assert(betaRow[sheet[0].indexOf("title")] === 'Hello, "world"');
@@ -388,7 +401,9 @@ const catalogFile = JSON.parse(fs.readFileSync(path.join(built, "catalog.json"),
 assert(versionFile.version === "1" && catalogFile.version === "1", "schema version 1");
 assert(versionFile.generated_at === catalogFile.generated_at && /^\d{4}-\d{2}-\d{2}T/.test(versionFile.generated_at), "generated_at");
 assert(catalogFile.lessons.length === lessons.length, "catalog.json lessons");
-assert(catalogFile.facets.instruments.includes("theory") && catalogFile.facets.traditions.includes("jazz"), "catalog.json facets");
+assert(catalogFile.lessons.length === 575 && catalogFile.facets.instruments.includes("voice") && catalogFile.facets.traditions.includes("latin-caribbean"), "catalog.json facets");
+const catalogChannels = new Set(catalogFile.lessons.map((item) => item.channel_id));
+assert(catalogChannels.size === 53, "catalog channel count");
 const embedOut = path.join(built, "embed.js");
 const embedBuild = spawnSync(process.execPath, [path.join(root, "scripts", "build-embed.js"), embedOut], { encoding: "utf8" });
 assert(embedBuild.status === 0, embedBuild.stderr || "build-embed failed");

@@ -57,7 +57,7 @@ Append an object to `data/lessons.json`. The researched catalog is not in this r
 - `tradition` is optional. Omit the key when the lesson has no tradition.
 - `in_the_style_of`, `series`, and `description` are optional.
 - `structure` is `structured` or `casual`. `level` is `beginner`, `intermediate`, or `advanced`.
-- Instrument and tradition slugs have to be listed in `data/facets.json` while those lists are non-empty. `theory` is the instrument for lessons that are not tied to one instrument. `production` is the instrument for DAW software such as Ableton Live and for EDM beat-making.
+- Instrument and tradition values have to be listed in `data/facets.json` while those lists are non-empty. `general` is the instrument for theory-first lessons. `production/DAW` is the instrument for DAW software such as Ableton Live and for EDM beat-making. `voice` is for singing. `level` may be omitted when the lesson does not state one.
 
 See `SCHEMA.md` for the full field list.
 
@@ -65,11 +65,11 @@ See `SCHEMA.md` for the full field list.
 
 `data/facets.json` supplies the filter vocabularies. The finder reads it when the file is present and does not keep its own copy of the instrument or tradition lists. A missing file, or an empty list, means that dimension is taken from the lessons themselves.
 
-The seed lists are:
+The catalog lists are:
 
-- instruments: guitar, piano, bass, drums, saxophone, synthesizer, mallets, organ, production, theory
-- traditions: western, jazz, indian-hindustani, indian-carnatic, arabic-maqam, microtonal, west-african, flamenco, brazilian
-- topics: technique, theory, song tutorial
+- instruments: general, guitar, production/DAW, synthesizer, drums, piano, saxophone, bass, mallets, organ, voice
+- traditions: western, indian-hindustani, west-african, arabic-maqam, flamenco, microtonal, brazilian, latin-caribbean, indian-carnatic
+- topics: technique, theory, song-tutorial, improvisation, sound-design, rhythm-groove, chords, practice, gear-tone, scales, ear-training, reading, songwriting
 
 `styles` and `in_the_style_of` start empty, so the first lessons can introduce those values. Once a list is non-empty, new values have to be added there too.
 

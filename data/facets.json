@@ -1,0 +1,159 @@
+{
+  "instruments": [
+    "general",
+    "guitar",
+    "production/DAW",
+    "synthesizer",
+    "drums",
+    "piano",
+    "saxophone",
+    "bass",
+    "mallets",
+    "organ",
+    "voice"
+  ],
+  "traditions": [
+    "western",
+    "indian-hindustani",
+    "west-african",
+    "arabic-maqam",
+    "flamenco",
+    "microtonal",
+    "brazilian",
+    "latin-caribbean",
+    "indian-carnatic"
+  ],
+  "styles": [
+    "jazz",
+    "electronic",
+    "general",
+    "hindustani",
+    "gospel",
+    "west-african",
+    "flamenco",
+    "maqam",
+    "microtonal",
+    "classical",
+    "latin",
+    "carnatic",
+    "funk",
+    "bossa-nova",
+    "choro",
+    "blues",
+    "hip-hop",
+    "punk",
+    "samba",
+    "folk",
+    "pop",
+    "rock"
+  ],
+  "topics": [
+    "technique",
+    "theory",
+    "song-tutorial",
+    "improvisation",
+    "sound-design",
+    "rhythm-groove",
+    "chords",
+    "practice",
+    "gear-tone",
+    "scales",
+    "ear-training",
+    "reading",
+    "songwriting"
+  ],
+  "structures": [
+    "structured",
+    "casual"
+  ],
+  "levels": [
+    "beginner",
+    "intermediate",
+    "advanced"
+  ],
+  "in_the_style_of": [],
+  "labels": {
+    "instruments": {
+      "general": "General (theory / all instruments)",
+      "guitar": "Guitar",
+      "production/DAW": "Production / DAW",
+      "synthesizer": "Synthesizer",
+      "drums": "Drums",
+      "piano": "Piano",
+      "saxophone": "Saxophone",
+      "bass": "Bass",
+      "mallets": "Mallets",
+      "organ": "Organ",
+      "voice": "Voice"
+    },
+    "traditions": {
+      "western": "Western",
+      "indian-hindustani": "Indian (Hindustani)",
+      "west-african": "West African",
+      "arabic-maqam": "Arabic maqam",
+      "flamenco": "Flamenco",
+      "microtonal": "Microtonal",
+      "brazilian": "Brazilian",
+      "latin-caribbean": "Latin / Caribbean",
+      "indian-carnatic": "Indian (Carnatic)"
+    },
+    "styles": {
+      "jazz": "Jazz",
+      "electronic": "Electronic",
+      "general": "General",
+      "hindustani": "Hindustani",
+      "gospel": "Gospel",
+      "west-african": "West African",
+      "flamenco": "Flamenco",
+      "maqam": "Maqam",
+      "microtonal": "Microtonal",
+      "classical": "Classical",
+      "latin": "Latin",
+      "carnatic": "Carnatic",
+      "funk": "Funk",
+      "bossa-nova": "Bossa nova",
+      "choro": "Choro",
+      "blues": "Blues",
+      "hip-hop": "Hip-hop",
+      "punk": "Punk",
+      "samba": "Samba",
+      "folk": "Folk",
+      "pop": "Pop",
+      "rock": "Rock"
+    },
+    "topics": {
+      "technique": "Technique",
+      "theory": "Theory",
+      "song-tutorial": "Song tutorial",
+      "improvisation": "Improvisation",
+      "sound-design": "Sound design",
+      "rhythm-groove": "Rhythm / groove",
+      "chords": "Chords",
+      "practice": "Practice",
+      "gear-tone": "Gear / tone",
+      "scales": "Scales",
+      "ear-training": "Ear training",
+      "reading": "Reading",
+      "songwriting": "Songwriting"
+    },
+    "structures": {
+      "structured": "Structured",
+      "casual": "Casual"
+    },
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    }
+  },
+  "notes": {
+    "instruments": {
+      "general": "Theory-first lessons that are not tied to one instrument.",
+      "production/DAW": "DAW software such as Ableton Live and EDM beat-making.",
+      "voice": "Singing and voice lessons."
+    },
+    "traditions": {
+      "latin-caribbean": "Latin and Caribbean traditions."
+    }
+  }
+}

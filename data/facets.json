@@ -1,0 +1,47 @@
+{
+  "instruments": [
+    "guitar",
+    "piano",
+    "bass",
+    "drums",
+    "saxophone",
+    "synthesizer",
+    "mallets",
+    "organ",
+    "production",
+    "theory"
+  ],
+  "traditions": [
+    "western",
+    "jazz",
+    "indian-hindustani",
+    "indian-carnatic",
+    "arabic-maqam",
+    "microtonal",
+    "west-african",
+    "flamenco",
+    "brazilian"
+  ],
+  "styles": [],
+  "topics": [
+    "technique",
+    "theory",
+    "song tutorial"
+  ],
+  "structures": [
+    "structured",
+    "casual"
+  ],
+  "levels": [
+    "beginner",
+    "intermediate",
+    "advanced"
+  ],
+  "in_the_style_of": [],
+  "notes": {
+    "instruments": {
+      "theory": "Instrument-agnostic theory lessons.",
+      "production": "DAW software such as Ableton Live and EDM beat-making."
+    }
+  }
+}

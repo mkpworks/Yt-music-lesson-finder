@@ -112,7 +112,7 @@ Other sites load the finder from this repository. They do not copy the catalog.
 | `data-level` / `level` | `beginner`, `intermediate`, or `advanced` | No level filter |
 | `data-in-the-style-of` / `inTheStyleOf` | An artist name | No artist filter |
 
-The widget renders in a shadow root, so its CSS does not leak in or out. Search, filters, sort, channel groups, and the lesson cards are the same finder as this site. A thumbnail plays inline from `youtube-nocookie.com`. **View on YouTube** and **Open on YT Trainer** open in a new tab. **Download this list** exports the filtered rows. A **Powered by YT Music Lesson Finder** link points back here.
+The widget renders in a shadow root, so its CSS does not leak in or out. Search, filters, sort, channel groups, and the lesson cards are the same finder as this site. A thumbnail plays inline from `youtube-nocookie.com`. **View on YouTube** opens in a new tab. **Open on YT Trainer** opens in a new tab, and in the same tab when the page hosting the finder is `ytmusictrainer.com` or a subdomain such as `www`. Any other link to that site follows the same rule. **Download this list** exports the filtered rows. A **Powered by YT Music Lesson Finder** link points back here.
 
 `embed-demo.html` on this site shows the snippet and a live embed. Build `embed.js` before opening that page locally.
 

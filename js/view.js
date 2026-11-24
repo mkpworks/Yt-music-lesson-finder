@@ -36,6 +36,59 @@
     }[ch]));
   }
 
+  function trainerSiteHost() {
+    try {
+      return new URL(Catalog.YT_TRAINER_BASE).hostname.replace(/\.+$/, "").toLowerCase();
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function isTrainerHost(hostname) {
+    const base = trainerSiteHost();
+    const host = String(hostname || "").trim().toLowerCase().replace(/\.+$/, "");
+    return Boolean(base) && Boolean(host) && (host === base || host.endsWith("." + base));
+  }
+
+  function pageHostname() {
+    try {
+      if (typeof window === "undefined" || !window.location) return "";
+      return window.location.hostname || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function linkHostname(href) {
+    const raw = String(href == null ? "" : href).trim();
+    if (!raw) return "";
+    try {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return new URL(raw).hostname;
+      if (raw.startsWith("//")) return new URL("https:" + raw).hostname;
+      if (typeof window !== "undefined" && window.location && window.location.href) {
+        return new URL(raw, window.location.href).hostname;
+      }
+    } catch (error) {
+      return "";
+    }
+    return "";
+  }
+
+  function newTabAttrs() {
+    return ' target="_blank" rel="noopener noreferrer"';
+  }
+
+  // Links to the trainer site open in this tab when the page is already on that
+  // site (apex or any subdomain). From every other host they open in a new tab.
+  function trainerAnchorAttrs(href) {
+    if (isTrainerHost(linkHostname(href)) && isTrainerHost(pageHostname())) return "";
+    return newTabAttrs();
+  }
+
+  function siteLinkAttrs(href) {
+    return isTrainerHost(linkHostname(href)) ? trainerAnchorAttrs(href) : "";
+  }
+
   function pickValue(value, allowed, labels) {
     const choices = allowed || [];
     if (value == null) return "All";
@@ -175,8 +228,8 @@
             '<div id="style-of-list" class="chips"></div></details>' +
           '<footer class="site-footer">' +
             "<p>Watch links open YouTube uploads. Those videos are not hosted here, and the uploads can change or be removed.</p>" +
-            '<p><a href="' + esc(csv) + '">Download full spreadsheet</a></p>' +
-            '<p class="powered">Powered by <a href="' + esc(home) + '">YT Music Lesson Finder</a></p>' +
+            '<p><a href="' + esc(csv) + '"' + siteLinkAttrs(csv) + ">Download full spreadsheet</a></p>" +
+            '<p class="powered">Powered by <a href="' + esc(home) + '"' + siteLinkAttrs(home) + ">YT Music Lesson Finder</a></p>" +
           "</footer>" +
         "</div>" +
       "</div>"
@@ -314,7 +367,7 @@
       const links =
         '<div class="video-links">' +
           '<a class="watch" href="' + esc(watchUrl) + '" target="_blank" rel="noopener noreferrer" aria-label="View ' + esc(lesson.title) + ' on YouTube">View on YouTube</a>' +
-          '<a class="trainer" href="' + esc(trainer) + '" target="_blank" rel="noopener noreferrer" aria-label="Open ' + esc(lesson.title) + ' on YT Trainer">Open on YT Trainer</a>' +
+          '<a class="trainer" href="' + esc(trainer) + '"' + trainerAnchorAttrs(trainer) + ' aria-label="Open ' + esc(lesson.title) + ' on YT Trainer">Open on YT Trainer</a>' +
         "</div>";
       const relatedHtml = showRelated
         ? '<button type="button" class="text-btn" data-action="similar" data-id="' + esc(lesson.id) + '">Related</button>'

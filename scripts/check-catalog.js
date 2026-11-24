@@ -369,6 +369,136 @@ const viewSource = fs.readFileSync(path.join(root, "js", "view.js"), "utf8");
 assert(viewSource.includes("View on YouTube") && viewSource.includes("Open on YT Trainer"), "video links");
 assert(viewSource.includes("Catalog.trainerUrl") && !viewSource.includes("ytmusictrainer.com"), "trainer url stays in catalog.js");
 assert(viewSource.includes("youtube-nocookie.com/embed/"), "inline player");
+assert(viewSource.includes("location.hostname"), "trainer tab follows the host page");
+assert(/class="watch"[^>]*target="_blank" rel="noopener noreferrer"/.test(viewSource), "watch links stay in a new tab");
+
+function withPage(hostname, href, fn) {
+  const previous = global.window;
+  global.window = {
+    location: {
+      hostname: hostname,
+      href: href || ("https://" + (hostname || "example.com") + "/"),
+    },
+    matchMedia() { return { matches: false }; },
+  };
+  try {
+    return fn();
+  } finally {
+    if (previous === undefined) delete global.window;
+    else global.window = previous;
+  }
+}
+
+function finderMarkup(hostname) {
+  return withPage(hostname, "https://" + (hostname || "example.com") + "/lesson-finder/", () => {
+    const nodes = new Map();
+    function el() {
+      return {
+        value: "",
+        hidden: false,
+        disabled: false,
+        textContent: "",
+        innerHTML: "",
+        classList: { add() {}, contains() { return false; } },
+        setAttribute() {},
+        getAttribute() { return null; },
+        addEventListener() {},
+        focus() {},
+        scrollIntoView() {},
+      };
+    }
+    const host = {
+      activeElement: null,
+      getElementById(id) {
+        if (!nodes.has(id)) nodes.set(id, el());
+        return nodes.get(id);
+      },
+      querySelectorAll() { return []; },
+      addEventListener() {},
+    };
+    FinderView.mount(host, {
+      lessons: [lesson()],
+      facets,
+      themeTarget: { getAttribute() { return "dark"; }, setAttribute() {} },
+      persistTheme: false,
+    });
+    return host.getElementById("results").innerHTML + host.getElementById("discover-body").innerHTML;
+  });
+}
+
+function anchors(html, className) {
+  const found = [];
+  const re = new RegExp('<a class="' + className + '" href="([^"]*)"([^>]*)>', "g");
+  let match;
+  while ((match = re.exec(html))) found.push({ href: match[1], attrs: match[2] });
+  return found;
+}
+
+function assertSameTab(anchorsFound, label) {
+  assert(anchorsFound.length > 0, label + " missing");
+  for (const link of anchorsFound) {
+    assert(!/\btarget\s*=/.test(link.attrs), label + " should omit target on " + link.href + " attrs:" + link.attrs);
+    assert(!/\brel\s*=/.test(link.attrs), label + " should omit rel when it stays in this tab");
+  }
+}
+
+function assertNewTab(anchorsFound, label) {
+  assert(anchorsFound.length > 0, label + " missing");
+  for (const link of anchorsFound) {
+    assert(link.attrs.includes('target="_blank"') && link.attrs.includes('rel="noopener noreferrer"'), label + " should open in a new tab: " + link.attrs);
+  }
+}
+
+const offSite = finderMarkup("mkpworks.github.io");
+assertNewTab(anchors(offSite, "trainer"), "trainer link off the trainer site");
+assertNewTab(anchors(offSite, "watch"), "watch link off the trainer site");
+for (const hostname of ["ytmusictrainer.com", "www.ytmusictrainer.com", "lesson.ytmusictrainer.com", "WWW.YTMUSICTRAINER.COM", "ytmusictrainer.com."]) {
+  const markup = finderMarkup(hostname);
+  assertSameTab(anchors(markup, "trainer"), "trainer link on " + hostname);
+  assertNewTab(anchors(markup, "watch"), "watch link on " + hostname);
+}
+for (const hostname of ["", "localhost", "example.com", "notytmusictrainer.com", "ytmusictrainer.com.evil.com", "www.ytmusictrainer.com.evil.com"]) {
+  const markup = finderMarkup(hostname);
+  assertNewTab(anchors(markup, "trainer"), "trainer link on " + (hostname || "(empty host)"));
+  assertNewTab(anchors(markup, "watch"), "watch link on " + (hostname || "(empty host)"));
+}
+assert(anchors(offSite, "trainer").every((link) => link.href === Catalog.trainerUrl("aaaaaaaaaaa")), "trainer href");
+
+function anchorTag(html, href) {
+  const needle = 'href="' + href.replace(/&/g, "&amp;") + '"';
+  const at = html.indexOf(needle);
+  assert(at > -1, "missing href " + href);
+  return html.slice(html.lastIndexOf("<a ", at), html.indexOf(">", at) + 1);
+}
+
+function assertTagNewTab(tag, label) {
+  assert(tag.includes('target="_blank"') && tag.includes('rel="noopener noreferrer"'), label + " should open in a new tab: " + tag);
+}
+
+function assertTagSameTab(tag, label) {
+  assert(!/\btarget\s*=/.test(tag) && !/\brel\s*=/.test(tag), label + " should stay in this tab: " + tag);
+}
+
+const trainerHome = "https://www.ytmusictrainer.com/lesson-finder/";
+const trainerCsv = "https://cdn.ytmusictrainer.com/data/catalog.csv";
+const githubHome = "https://mkpworks.github.io/Yt-music-lesson-finder/";
+const offShell = withPage("example.com", "https://example.com/", () => FinderView.shellHtml({ home: trainerHome, csv: trainerCsv }));
+assertTagNewTab(anchorTag(offShell, trainerHome), "powered-by link off the trainer site");
+assertTagNewTab(anchorTag(offShell, trainerCsv), "spreadsheet link off the trainer site");
+const onShell = withPage("www.ytmusictrainer.com", "https://www.ytmusictrainer.com/lesson-finder/", () => FinderView.shellHtml({ home: trainerHome, csv: trainerCsv }));
+assertTagSameTab(anchorTag(onShell, trainerHome), "powered-by link on the trainer site");
+assertTagSameTab(anchorTag(onShell, trainerCsv), "spreadsheet link on the trainer site");
+const lookalike = withPage("ytmusictrainer.com", "https://ytmusictrainer.com/", () => FinderView.shellHtml({
+  home: "https://ytmusictrainer.com.evil.com/finder/",
+  csv: "https://notytmusictrainer.com/data/catalog.csv",
+}));
+assertTagSameTab(anchorTag(lookalike, "https://ytmusictrainer.com.evil.com/finder/"), "lookalike host");
+assertTagSameTab(anchorTag(lookalike, "https://notytmusictrainer.com/data/catalog.csv"), "suffix lookalike");
+const defaultShell = withPage("mkpworks.github.io", githubHome, () => FinderView.shellHtml());
+assertTagSameTab(anchorTag(defaultShell, githubHome), "powered-by link to this site");
+assertTagSameTab(anchorTag(defaultShell, githubHome + "data/catalog.csv"), "default spreadsheet link");
+const cased = withPage("example.com", "https://example.com/", () => FinderView.shellHtml({ home: "https://YTMUSICTRAINER.com/path" }));
+assertTagNewTab(anchorTag(cased, "https://YTMUSICTRAINER.com/path"), "trainer host ignores case");
 assert(viewSource.includes('data-action="csv"') && viewSource.includes('data-action="search"') && viewSource.includes("runSearch"));
 assert(viewSource.includes('"name-link"'), "channel names are search links");
 const demo = fs.readFileSync(path.join(root, "embed-demo.html"), "utf8");
@@ -410,7 +540,7 @@ assert(embedBuild.status === 0, embedBuild.stderr || "build-embed failed");
 const embedCheck = spawnSync(process.execPath, ["--check", embedOut], { encoding: "utf8" });
 assert(embedCheck.status === 0, embedCheck.stderr || "embed.js syntax");
 const embedSource = fs.readFileSync(embedOut, "utf8");
-for (const needle of ["window.LessonFinder", "attachShadow", "[data-lesson-finder]", "data/version.json", "data/catalog.json", "Open on YT Trainer", "youtube-nocookie.com/embed/", "Powered by", 'id="tradition"', "Browse by channel"]) {
+for (const needle of ["window.LessonFinder", "attachShadow", "[data-lesson-finder]", "data/version.json", "data/catalog.json", "Open on YT Trainer", "youtube-nocookie.com/embed/", "Powered by", 'id="tradition"', "Browse by channel", "location.hostname", "trainerAnchorAttrs"]) {
   assert(embedSource.includes(needle), "embed bundle missing " + needle);
 }
 

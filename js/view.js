@@ -257,6 +257,7 @@
       open: {},
       pickId: "",
       seedMode: true,
+      groupPage: {},
     };
     let index = null;
     let defaults = presets({}, null);
@@ -410,8 +411,9 @@
         ? searchButton(group.label, "group-title")
         : pivotButton(state.mode, group.key, "group-title", group.label);
       const meta = group.count + " lesson" + (group.count === 1 ? "" : "s") + " · " + Catalog.formatDuration(group.seconds) + " total";
+      const windowed = open ? groupWindow(group, id) : null;
       const body = open
-        ? '<div class="group-body">' + group.items.map((lesson) => lessonArticle(lesson, { grouped: true, related: true })).join("") + "</div>"
+        ? '<div class="group-body">' + windowed.items.map((lesson) => lessonArticle(lesson, { grouped: true, related: true })).join("") + groupPager(id, windowed, group.count) + "</div>"
         : "";
       return (
         '<section class="group' + (open ? " is-open" : "") + '">' +
@@ -442,6 +444,25 @@
 
     function emptyState(message) {
       return '<div class="empty"><p>' + esc(message) + '</p><button type="button" class="btn" data-action="clear">Clear filters</button></div>';
+    }
+
+    function groupWindow(group, id) {
+      const pages = Catalog.pageCount(group.items.length);
+      let page = state.groupPage[id] || 0;
+      if (page > pages - 1) page = pages - 1;
+      if (page < 0) page = 0;
+      state.groupPage[id] = page;
+      const start = page * Catalog.PER_PAGE;
+      return { page, pages, start, items: group.items.slice(start, start + Catalog.PER_PAGE) };
+    }
+
+    function groupPager(id, windowed, total) {
+      if (!windowed || windowed.pages < 2) return "";
+      const prev = windowed.page === 0 ? " disabled" : "";
+      const next = windowed.page >= windowed.pages - 1 ? " disabled" : "";
+      const from = windowed.start + 1;
+      const to = windowed.start + windowed.items.length;
+      return '<nav class="pager" aria-label="Lessons in this group"><button type="button" class="btn" data-action="group-prev" data-group="' + esc(id) + '"' + prev + ">Previous</button><span class=\"status\">" + from + "–" + to + " of " + total + "</span><button type=\"button\" class=\"btn\" data-action=\"group-next\" data-group=\"" + esc(id) + "\"" + next + ">Next</button></nav>";
     }
 
     function pager(pages) {
@@ -696,6 +717,11 @@
       } else if (action === "group") {
         const id = el.getAttribute("data-group");
         state.open[id] = !state.open[id];
+        render(false);
+      } else if (action === "group-prev" || action === "group-next") {
+        const id = el.getAttribute("data-group");
+        const current = state.groupPage[id] || 0;
+        state.groupPage[id] = action === "group-prev" ? current - 1 : current + 1;
         render(false);
       } else if (action === "prev") {
         state.page -= 1;

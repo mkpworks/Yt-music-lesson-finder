@@ -28,11 +28,28 @@ for (const name of instrumentSamples) assert(facets.instruments.includes(name), 
 for (const name of traditionSamples) assert(facets.traditions.includes(name), "facets traditions include " + name);
 assert(facets.notes.instruments.general && facets.notes.instruments["production/DAW"].includes("Ableton"), "instrument notes");
 assert(facets.labels.instruments["production/DAW"] && facets.labels.instruments.general && facets.labels.traditions["latin-caribbean"], "facet labels");
-assert(lessons.length === 575, "lesson count");
-assert(new Set(lessons.map((item) => item.channel_id)).size === 53, "channel count");
+assert(lessons.length === 4564, "lesson count");
+assert(new Set(lessons.map((item) => item.channel_id)).size === 70, "channel count");
 const loadedIndex = Catalog.buildIndex(lessons, facets);
-assert(loadedIndex.channels.length === 53, "channel index");
-assert(Catalog.groupLessons(lessons, "channel", "channel", { index: loadedIndex }).length === 53, "channel browse");
+assert(loadedIndex.channels.length === 70, "channel index");
+assert(Catalog.groupLessons(lessons, "channel", "channel", { index: loadedIndex }).length === 70, "channel browse");
+assert(Catalog.pageCount(lessons.length) === 381, "list pages stay at 12 lessons");
+const browseStarted = process.hrtime.bigint();
+for (let pass = 0; pass < 20; pass += 1) {
+  const browsed = Catalog.sortLessons(
+    lessons.filter((item) => Catalog.matches(item, {
+      query: pass % 2 ? "guitar" : "",
+      instrument: pass % 3 ? "guitar" : "All",
+      style: pass % 5 ? "All" : "jazz",
+    }, loadedIndex)),
+    "channel"
+  );
+  Catalog.groupLessons(browsed, "channel", "channel", { index: loadedIndex });
+  Catalog.groupLessons(browsed, "topic", "time", { index: loadedIndex });
+}
+const browseElapsed = Number(process.hrtime.bigint() - browseStarted) / 1e6;
+assert(browseElapsed < 4000, "browsing 4564 lessons took " + browseElapsed.toFixed(0) + "ms");
+console.log("browse pass " + browseElapsed.toFixed(0) + "ms");
 assert(JSON.stringify(facets.structures) === JSON.stringify(["structured", "casual"]));
 assert(JSON.stringify(facets.levels) === JSON.stringify(["beginner", "intermediate", "advanced"]));
 
@@ -531,9 +548,12 @@ const catalogFile = JSON.parse(fs.readFileSync(path.join(built, "catalog.json"),
 assert(versionFile.version === "1" && catalogFile.version === "1", "schema version 1");
 assert(versionFile.generated_at === catalogFile.generated_at && /^\d{4}-\d{2}-\d{2}T/.test(versionFile.generated_at), "generated_at");
 assert(catalogFile.lessons.length === lessons.length, "catalog.json lessons");
-assert(catalogFile.lessons.length === 575 && catalogFile.facets.instruments.includes("voice") && catalogFile.facets.traditions.includes("latin-caribbean"), "catalog.json facets");
+assert(catalogFile.lessons.length === 4564 && catalogFile.facets.instruments.includes("voice") && catalogFile.facets.traditions.includes("latin-caribbean"), "catalog.json facets");
 const catalogChannels = new Set(catalogFile.lessons.map((item) => item.channel_id));
-assert(catalogChannels.size === 53, "catalog channel count");
+assert(catalogChannels.size === 70, "catalog channel count");
+for (const style of ["fusion", "metal", "country", "rnb-soul", "rock"]) {
+  assert(catalogFile.facets.styles.includes(style), "catalog style " + style);
+}
 const embedOut = path.join(built, "embed.js");
 const embedBuild = spawnSync(process.execPath, [path.join(root, "scripts", "build-embed.js"), embedOut], { encoding: "utf8" });
 assert(embedBuild.status === 0, embedBuild.stderr || "build-embed failed");

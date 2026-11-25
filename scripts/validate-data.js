@@ -135,17 +135,20 @@ function validate(lessons, facets) {
     } else if (!Catalog.channelUrlOk(lesson.channel_url, lesson.channel_id)) {
       errors.push(where + " channel_url must be a YouTube channel URL");
     }
-    if (!Number.isInteger(lesson.year) || lesson.year < 0 || lesson.year > 2100) {
+    if (!Number.isInteger(lesson.year) || lesson.year < 0 || lesson.year > 2100 || (lesson.year > 0 && lesson.year < 1900)) {
       errors.push(where + " year must be a whole number (0 if unknown)");
     }
-    if (!Number.isInteger(lesson.duration_seconds) || lesson.duration_seconds <= 0 || lesson.duration_seconds > 86400) {
-      errors.push(where + " duration_seconds must be a positive whole number");
+    if (!Number.isInteger(lesson.duration_seconds) || lesson.duration_seconds < 90 || lesson.duration_seconds > 86400) {
+      errors.push(where + " duration_seconds must be an integer >= 90");
+    }
+    if (!cleanText(lesson.discipline, 120) || !allowed(lesson.discipline, facet.disciplines, null)) {
+      errors.push(where + " discipline is required");
     }
     if (!cleanText(lesson.style, 80) || !allowed(lesson.style, facet.styles, PHRASE_RE)) {
       errors.push(where + " style is required");
     }
     if (lesson.in_the_style_of !== undefined) {
-      if (!cleanText(lesson.in_the_style_of, 80) || !allowed(lesson.in_the_style_of, facet.in_the_style_of, PHRASE_RE)) {
+      if (!cleanText(lesson.in_the_style_of, 160) || (facet.in_the_style_of.length && !facet.in_the_style_of.includes(lesson.in_the_style_of))) {
         errors.push(where + " in_the_style_of must be a non-empty name when present");
       }
     }

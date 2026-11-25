@@ -67,6 +67,10 @@ Unknown fields are ignored.
 
 `tradition` is optional. `facets.json` `traditions` is the allow-list when it is non-empty. The catalog uses western, indian-hindustani, indian-carnatic, arabic-maqam, microtonal, west-african, flamenco, brazilian, and latin-caribbean.
 
+`discipline` is required. It is the educator-directory section, such as "Rockabilly (added scope)" or "Two-hand tapping (added scope)". The page lists every value in `facets.json` `disciplines`.
+
+New instrument slugs include violin, viola, cello, harp, trumpet, banjo, oud, tabla, dj-turntables, and chapman-stick. New styles include rockabilly, progressive, experimental, celtic, and film-game. New topics include composition, orchestration, counterpoint, film-scoring, arranging, mixing, and tapping. The tapping label is "Tapping / two-hand". Labels live in `facets.labels`, not in the page script.
+
 Lessons with no `tradition` still appear in every other view. The Tradition browse hides them, and the filter for one tradition does not match them.
 
 ## Facets

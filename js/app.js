@@ -6,15 +6,24 @@
     if (status) status.textContent = "The page scripts did not load.";
     return;
   }
-  const lessonsPromise = fetch("data/lessons.json").then((res) => {
-    if (!res.ok) throw new Error("lessons");
+  const versionUrl = new URL("data/version.json", document.baseURI);
+  versionUrl.searchParams.set("t", String(Date.now()));
+  fetch(versionUrl.href, { cache: "no-store" }).then((res) => {
+    if (!res.ok) throw new Error("version");
     return res.json();
-  });
-  const facetsPromise = fetch("data/facets.json").then((res) => (res.ok ? res.json() : {})).catch(() => ({}));
-  Promise.all([lessonsPromise, facetsPromise]).then(([lessons, facets]) => {
+  }).then((version) => {
+    const catalogUrl = new URL("data/catalog.json", document.baseURI);
+    catalogUrl.searchParams.set("v", version.generated_at || version.version || "1");
+    return fetch(catalogUrl.href).then((res) => {
+      if (!res.ok) throw new Error("catalog");
+      return res.json();
+    });
+  }).then((catalog) => {
+    const unpacked = Catalog.unpackCatalog(catalog);
     FinderView.mount(document, {
-      lessons,
-      facets,
+      lessons: unpacked.lessons,
+      facets: unpacked.facets,
+      assetBase: document.baseURI,
       themeTarget: document.documentElement,
       persistTheme: true,
     });

@@ -33,6 +33,7 @@ function readOptions(el, extra) {
     topic: el.getAttribute("data-topic"),
     structure: el.getAttribute("data-structure"),
     level: el.getAttribute("data-level"),
+    discipline: el.getAttribute("data-discipline"),
     inTheStyleOf: el.getAttribute("data-in-the-style-of"),
   } : {};
   return Object.assign({}, fromEl, extra || {});
@@ -51,7 +52,7 @@ function loadCatalog() {
       const catalogRes = await fetch(catalogUrl.href);
       if (!catalogRes.ok) throw new Error("catalog");
       const catalog = await catalogRes.json();
-      if (!catalog || catalog.version !== "1" || !Array.isArray(catalog.lessons)) {
+      if (!catalog || catalog.version !== "1" || (!Array.isArray(catalog.lessons) && !Array.isArray(catalog.rows))) {
         throw new Error("catalog shape");
       }
       if (catalog.facets !== undefined && (typeof catalog.facets !== "object" || Array.isArray(catalog.facets))) {
@@ -92,9 +93,11 @@ function mount(el, extra) {
   const api = { element: el };
   el.__lessonFinder = api;
   loadCatalog().then((catalog) => {
+    const unpacked = Catalog.unpackCatalog(catalog);
     FinderView.mount(shadow, {
-      lessons: catalog.lessons,
-      facets: catalog.facets || {},
+      lessons: unpacked.lessons,
+      facets: unpacked.facets,
+      assetBase: base.href,
       themeTarget: el,
       persistTheme: false,
       channel: options.channel,
@@ -104,6 +107,7 @@ function mount(el, extra) {
       topic: options.topic,
       structure: options.structure,
       level: options.level,
+      discipline: options.discipline,
       inTheStyleOf: options.inTheStyleOf,
     });
   }).catch(() => {

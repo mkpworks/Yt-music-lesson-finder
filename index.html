@@ -25,7 +25,7 @@
       <div>
         <p class="eyebrow">YouTube lessons</p>
         <h1>YT Music Lesson Finder</h1>
-        <p class="lede" id="summary">Online music lessons on YouTube, grouped by channel and filtered by instrument, style, tradition, topic, structure, and level.</p>
+        <p class="lede" id="summary">Online music lessons on YouTube, grouped by channel and filtered by discipline, instrument, style, tradition, topic, structure, and level.</p>
         <dl class="stats" id="stats"></dl>
       </div>
       <button type="button" class="btn" id="theme" data-action="theme">Light theme</button>
@@ -37,6 +37,7 @@
         <h2 id="browse-heading">Browse</h2>
         <div class="modes" role="group" aria-label="Browse mode">
           <button type="button" data-action="mode" data-mode="channel" aria-pressed="true">Browse by channel</button>
+          <button type="button" data-action="mode" data-mode="discipline" aria-pressed="false">Discipline</button>
           <button type="button" data-action="mode" data-mode="instrument" aria-pressed="false">Instrument</button>
           <button type="button" data-action="mode" data-mode="style" aria-pressed="false">Style</button>
           <button type="button" data-action="mode" data-mode="styleOf" aria-pressed="false">In the style of</button>
@@ -54,6 +55,9 @@
         </label>
         <label class="field">Channel
           <select id="channel"></select>
+        </label>
+        <label class="field">Discipline
+          <select id="discipline"></select>
         </label>
         <label class="field">Instrument
           <select id="instrument"></select>
@@ -117,6 +121,15 @@
       </summary>
       <p class="section-note">Choose a channel name to fill the search. The number is how many lessons are on that channel.</p>
       <div id="channel-list" class="chips"></div>
+    </details>
+    <details class="fold">
+      <summary>
+        <span class="chev" aria-hidden="true">▸</span>
+        <span class="cross-title" id="discipline-heading">Disciplines</span>
+        <span class="cross-count" id="discipline-count"></span>
+      </summary>
+      <p class="section-note">Choose a discipline to filter every view. Added-scope sections, including rockabilly and two-hand tapping, are listed with the others.</p>
+      <div id="discipline-list" class="chips"></div>
     </details>
     <details class="fold">
       <summary>

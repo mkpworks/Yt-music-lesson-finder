@@ -22,11 +22,11 @@ node scripts/build-catalog.js
 node scripts/build-embed.js
 ```
 
-`data/catalog.csv`, `data/catalog.json`, `data/version.json`, and `embed.js` are build outputs and are gitignored.
+`embed.js` is a build output and is gitignored. The Pages build also rewrites `data/catalog.csv`, `data/catalog.json`, and `data/version.json` into the published site.
 
 ## Add a lesson
 
-Append an object to `data/lessons.json`. The researched catalog is not in this repo yet, so the file ships as an empty array. Keep it empty until each video has been checked.
+Append an object to `data/lessons.json`. The file currently holds the researched catalog (4,564 lessons, 70 channels). Keep a new video out until its id, channel, and duration have been checked.
 
 ```json
 {
@@ -71,7 +71,7 @@ The catalog lists are:
 - traditions: western, indian-hindustani, west-african, arabic-maqam, flamenco, microtonal, brazilian, latin-caribbean, indian-carnatic
 - topics: technique, theory, song-tutorial, improvisation, sound-design, rhythm-groove, chords, practice, gear-tone, scales, ear-training, reading, songwriting
 
-`styles` and `in_the_style_of` start empty, so the first lessons can introduce those values. Once a list is non-empty, new values have to be added there too.
+`styles` lists the styles in the catalog, including fusion, metal, country, and rnb-soul. `in_the_style_of` stays empty, so any artist name is accepted until that list is filled in. Once a list is non-empty, new values have to be added there too. A channel with many lessons is paged 12 at a time inside its group, and the channel list itself is paged 12 channels at a time.
 
 ## Spreadsheet
 

@@ -6,9 +6,10 @@
   else root.FinderView = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   const STYLE_COLORS = ["#e07a5f", "#3aa99a", "#e6a23c", "#7ea2e0", "#c46bdc", "#8fbf6a", "#e09ab2", "#d98a4a"];
-  const PIVOT_KEYS = ["instrument", "style", "tradition", "topic", "structure", "level", "inTheStyleOf"];
+  const PIVOT_KEYS = ["discipline", "instrument", "style", "tradition", "topic", "structure", "level", "inTheStyleOf"];
   const SELECTS = [
     ["channel", "channel"],
+    ["discipline", "discipline"],
     ["instrument", "instrument"],
     ["style", "style"],
     ["style-of", "inTheStyleOf"],
@@ -20,6 +21,7 @@
   ];
   const MODE_NOTES = {
     channel: "Each group is a YouTube channel. The count is the number of lessons. Choose a channel name to fill the search.",
+    discipline: "Each group is a discipline from the educator directory. Rockabilly and two-hand tapping are their own disciplines.",
     styleOf: "Only lessons that name an artist under in the style of are listed here.",
     tradition: "Only lessons that name a tradition are listed here.",
     topic: "A lesson is listed under each of its topics.",
@@ -118,6 +120,7 @@
       topic: pickValue(source.topic, idx.topics, labels.topics),
       structure: pickValue(source.structure, idx.structures, labels.structures),
       level: pickValue(source.level, idx.levels, labels.levels),
+      discipline: pickValue(source.discipline, idx.disciplines, labels.disciplines),
       inTheStyleOf: pickValue(source.inTheStyleOf || source.in_the_style_of, idx.styleArtists),
     };
   }
@@ -131,6 +134,7 @@
       topic: (filters && filters.topic) || "All",
       structure: (filters && filters.structure) || "All",
       level: (filters && filters.level) || "All",
+      discipline: (filters && filters.discipline) || "All",
       inTheStyleOf: (filters && filters.inTheStyleOf) || "All",
       query: query || "",
     };
@@ -143,6 +147,7 @@
     if (next.topic !== "All" && hits.some((item) => !Catalog.topicsOf(item).includes(next.topic))) next.topic = "All";
     if (next.structure !== "All" && hits.some((item) => item.structure !== next.structure)) next.structure = "All";
     if (next.level !== "All" && hits.some((item) => item.level !== next.level)) next.level = "All";
+    if (next.discipline !== "All" && hits.some((item) => (item.discipline || "") !== next.discipline)) next.discipline = "All";
     if (next.inTheStyleOf !== "All" && hits.some((item) => Catalog.fold(Catalog.styleOfArtist(item)) !== Catalog.fold(next.inTheStyleOf))) next.inTheStyleOf = "All";
     return next;
   }
@@ -155,7 +160,7 @@
         '<header class="site-header"><div class="wrap header-row"><div>' +
           '<p class="eyebrow">YouTube lessons</p>' +
           "<h1>YT Music Lesson Finder</h1>" +
-          '<p class="lede" id="summary">Online music lessons on YouTube, grouped by channel and filtered by instrument, style, tradition, topic, structure, and level.</p>' +
+          '<p class="lede" id="summary">Online music lessons on YouTube, grouped by channel and filtered by discipline, instrument, style, tradition, topic, structure, and level.</p>' +
           '<dl class="stats" id="stats"></dl>' +
         "</div>" +
         '<button type="button" class="btn" id="theme" data-action="theme">Light theme</button>' +
@@ -166,6 +171,7 @@
               '<h2 id="browse-heading">Browse</h2>' +
               '<div class="modes" role="group" aria-label="Browse mode">' +
                 '<button type="button" data-action="mode" data-mode="channel" aria-pressed="true">Browse by channel</button>' +
+                '<button type="button" data-action="mode" data-mode="discipline" aria-pressed="false">Discipline</button>' +
                 '<button type="button" data-action="mode" data-mode="instrument" aria-pressed="false">Instrument</button>' +
                 '<button type="button" data-action="mode" data-mode="style" aria-pressed="false">Style</button>' +
                 '<button type="button" data-action="mode" data-mode="styleOf" aria-pressed="false">In the style of</button>' +
@@ -179,6 +185,7 @@
             '<div class="filters">' +
               '<label class="field field-search"><span>Search <kbd>/</kbd></span><input id="q" type="search" placeholder="Channel, teacher, style, topic, artist" autocomplete="off"></label>' +
               '<label class="field">Channel <select id="channel"></select></label>' +
+              '<label class="field">Discipline <select id="discipline"></select></label>' +
               '<label class="field">Instrument <select id="instrument"></select></label>' +
               '<label class="field">Style <select id="style"></select></label>' +
               '<label class="field">In the style of <select id="style-of"></select></label>' +
@@ -212,6 +219,13 @@
             "</summary>" +
             '<p class="section-note">Choose a channel name to fill the search. The number is how many lessons are on that channel.</p>' +
             '<div id="channel-list" class="chips"></div></details>' +
+          '<details class="fold"><summary>' +
+            '<span class="chev" aria-hidden="true">▸</span>' +
+            '<span class="cross-title" id="discipline-heading">Disciplines</span>' +
+            '<span class="cross-count" id="discipline-count"></span>' +
+            "</summary>" +
+            '<p class="section-note">Choose a discipline to filter every view. Added-scope sections, including rockabilly and two-hand tapping, are listed with the others.</p>' +
+            '<div id="discipline-list" class="chips"></div></details>' +
           '<details class="fold"><summary>' +
             '<span class="chev" aria-hidden="true">▸</span>' +
             '<span class="cross-title" id="tradition-heading">Traditions</span>' +
@@ -251,6 +265,7 @@
       topic: "All",
       structure: "All",
       level: "All",
+      discipline: "All",
       inTheStyleOf: "All",
       query: "",
       page: 0,
@@ -262,6 +277,42 @@
     let index = null;
     let defaults = presets({}, null);
     let channelStamp = "";
+    let disciplineStamp = "";
+    const shardState = {};
+    const assetBase = opts.assetBase || "";
+
+    function ensureDescriptions(visible) {
+      const slugs = new Set();
+      for (const lesson of visible || []) {
+        if (!lesson || lesson.description || !lesson.discipline) continue;
+        slugs.add(Catalog.disciplineSlug(lesson.discipline));
+      }
+      slugs.forEach((slug) => {
+        if (shardState[slug]) return;
+        shardState[slug] = "loading";
+        let url;
+        try {
+          url = new URL("data/shards/" + slug + ".json", assetBase || document.baseURI).href;
+        } catch (error) {
+          shardState[slug] = {};
+          return;
+        }
+        fetch(url).then((res) => (res.ok ? res.json() : {})).then((map) => {
+          shardState[slug] = map || {};
+          let changed = false;
+          for (const lesson of index.lessons) {
+            const text = map && map[lesson.id];
+            if (!text || lesson.description) continue;
+            lesson.description = text;
+            lesson._search = (lesson._search || "") + " " + Catalog.fold(text);
+            changed = true;
+          }
+          if (changed) render(false);
+        }).catch(() => {
+          shardState[slug] = {};
+        });
+      });
+    }
     let traditionStamp = "";
     let styleOfStamp = "";
     let discoverStamp = "";
@@ -296,6 +347,7 @@
         state.topic === "All" &&
         state.structure === "All" &&
         state.level === "All" &&
+        state.discipline === "All" &&
         state.inTheStyleOf === "All";
     }
 
@@ -319,6 +371,7 @@
         topic: "topics",
         structure: "structures",
         level: "levels",
+        discipline: "disciplines",
       }[key] || key;
       const labels = index.facets && index.facets.labels && index.facets.labels[group];
       return Catalog.labelOf(value, labels);
@@ -350,6 +403,7 @@
         ? '<button type="button" class="style-mark" data-action="pivot" data-key="style" data-value="' + esc(lesson.style) + '"><i style="background:' + styleColor(lesson.style) + '"></i>' + esc(facetLabel(lesson.style, "style")) + "</button>"
         : "";
       const chips = [];
+      if (lesson.discipline) chips.push(pivotButton("discipline", lesson.discipline, "chip-btn"));
       if (lesson.instrument) chips.push(pivotButton("instrument", lesson.instrument, "chip-btn"));
       if (Catalog.traditionOf(lesson)) chips.push(pivotButton("tradition", lesson.tradition, "chip-btn"));
       for (const topic of Catalog.topicsOf(lesson)) chips.push(pivotButton("topic", topic, "chip-btn"));
@@ -483,6 +537,14 @@
             : "";
         }
       }
+      const disciplineKey = state.discipline;
+      if (disciplineKey !== disciplineStamp) {
+        disciplineStamp = disciplineKey;
+        const host = byId("discipline-list");
+        if (host) {
+          host.innerHTML = (index.disciplines || []).map((name) => '<span class="chip">' + pivotButton("discipline", name, "chip-btn") + '<span class="chip-count">' + (index.disciplineCount[name] || 0) + "</span></span>").join("");
+        }
+      }
       const traditionKey = state.tradition;
       if (traditionKey !== traditionStamp) {
         traditionStamp = traditionKey;
@@ -528,6 +590,7 @@
         topic: ["topic", "topics"],
         structure: ["structure", "structures"],
         level: ["level", "levels"],
+        discipline: ["discipline", "disciplines"],
       };
       const counted = rows.length === 1 ? "1 lesson" : rows.length + " lessons";
       const lessonLabel = rows.length === index.lessons.length ? counted : counted + " of " + index.lessons.length;
@@ -574,6 +637,8 @@
         const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         byId("results").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
       }
+      const shown = state.mode === "list" ? pageRows : pageGroups.filter((group) => state.open[groupDomId(group.key)]).flatMap((group) => groupWindow(group, groupDomId(group.key)).items);
+      ensureDescriptions(shown);
     }
 
     function formatLong(seconds) {
@@ -644,6 +709,7 @@
       state.topic = next.topic;
       state.structure = next.structure;
       state.level = next.level;
+      state.discipline = next.discipline;
       state.inTheStyleOf = next.inTheStyleOf;
     }
 
@@ -663,6 +729,7 @@
       state.topic = defaults.topic;
       state.structure = defaults.structure;
       state.level = defaults.level;
+      state.discipline = defaults.discipline;
       state.inTheStyleOf = defaults.inTheStyleOf;
       state.query = "";
       state.page = 0;
@@ -678,6 +745,7 @@
       state.topic = "All";
       state.structure = "All";
       state.level = "All";
+      state.discipline = "All";
       state.inTheStyleOf = "All";
       state.query = "";
       state.page = 0;
@@ -812,6 +880,7 @@
     state.topic = defaults.topic;
     state.structure = defaults.structure;
     state.level = defaults.level;
+    state.discipline = defaults.discipline;
     state.inTheStyleOf = defaults.inTheStyleOf;
     state.pickId = lessons[0] ? lessons[0].id : "";
     bind();
@@ -820,6 +889,7 @@
       const count = index.channelCount[channel.channel_id] || 0;
       return '<option value="' + esc(channel.channel_id) + '">' + esc(channel.channel_name) + " · " + count + "</option>";
     }).join("");
+    fillSelect("discipline", index.disciplines, (value) => facetLabel(value, "discipline"));
     fillSelect("instrument", index.instruments, (value) => facetLabel(value, "instrument"), (value) => Catalog.facetNote(index, "instruments", value));
     fillSelect("style", index.styles, (value) => facetLabel(value, "style"));
     fillSelect("style-of", index.styleArtists);
@@ -835,18 +905,24 @@
         stat("Channels", String(index.channels.length)) +
         stat("Listening time", formatLong(seconds)) +
         stat("Instruments", String(Object.keys(index.instrumentCount).length)) +
-        stat("Traditions", String(Object.keys(index.traditionCount).length));
+        stat("Traditions", String(Object.keys(index.traditionCount).length)) +
+        stat("Disciplines", String(Object.keys(index.disciplineCount).length));
     }
     const summary = byId("summary");
     if (summary) {
       summary.textContent = lessons.length
-        ? lessons.length + " online music lessons on YouTube. Browse by channel, instrument, style, tradition, topic, structure, and level."
+        ? lessons.length + " online music lessons on YouTube. Browse by channel, discipline, instrument, style, tradition, topic, structure, and level."
         : "No lessons in the catalog yet. Instrument and tradition filters load from the facet list.";
     }
     const channelCount = byId("channel-count");
     if (channelCount) {
       const count = index.channels.length;
       channelCount.textContent = count + " channel" + (count === 1 ? "" : "s");
+    }
+    const disciplineCount = byId("discipline-count");
+    if (disciplineCount) {
+      const count = index.disciplines.length;
+      disciplineCount.textContent = count + " discipline" + (count === 1 ? "" : "s");
     }
     const traditionCount = byId("tradition-count");
     if (traditionCount) {

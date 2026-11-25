@@ -28,14 +28,21 @@ for (const name of instrumentSamples) assert(facets.instruments.includes(name), 
 for (const name of traditionSamples) assert(facets.traditions.includes(name), "facets traditions include " + name);
 assert(facets.notes.instruments.general && facets.notes.instruments["production/DAW"].includes("Ableton"), "instrument notes");
 assert(facets.labels.instruments["production/DAW"] && facets.labels.instruments.general && facets.labels.traditions["latin-caribbean"], "facet labels");
-assert(lessons.length === 4564, "lesson count");
-assert(new Set(lessons.map((item) => item.channel_id)).size === 70, "channel count");
+assert(lessons.length === 40721, "lesson count");
+assert(new Set(lessons.map((item) => item.channel_id)).size === 726, "channel count");
+assert(facets.styles.includes("rockabilly"), "rockabilly style");
+assert(facets.labels.topics.tapping === "Tapping / two-hand", "tapping label");
+assert(facets.disciplines.includes("Rockabilly (added scope)") && facets.disciplines.includes("Two-hand tapping (added scope)"), "added disciplines");
+assert(facets.instruments.includes("violin") && facets.instruments.includes("oud") && facets.instruments.includes("chapman-stick") && facets.instruments.includes("dj-turntables"), "new instruments");
 const loadedIndex = Catalog.buildIndex(lessons, facets);
-assert(loadedIndex.channels.length === 70, "channel index");
-assert(Catalog.groupLessons(lessons, "channel", "channel", { index: loadedIndex }).length === 70, "channel browse");
-assert(Catalog.pageCount(lessons.length) === 381, "list pages stay at 12 lessons");
+assert(loadedIndex.channels.length === 726, "channel index");
+assert(Catalog.groupLessons(lessons, "channel", "channel", { index: loadedIndex }).length === 726, "channel browse");
+assert(Catalog.pageCount(lessons.length) === 3394, "list pages stay at 12 lessons");
+assert(lessons.filter((item) => Catalog.matches(item, { style: "rockabilly" }, loadedIndex)).length > 0, "rockabilly filter");
+assert(lessons.filter((item) => Catalog.matches(item, { topic: "tapping" }, loadedIndex)).length > 0, "tapping filter");
+assert(lessons.filter((item) => Catalog.matches(item, { discipline: "Two-hand tapping (added scope)" }, loadedIndex)).length > 0, "tapping discipline");
 const browseStarted = process.hrtime.bigint();
-for (let pass = 0; pass < 20; pass += 1) {
+for (let pass = 0; pass < 4; pass += 1) {
   const browsed = Catalog.sortLessons(
     lessons.filter((item) => Catalog.matches(item, {
       query: pass % 2 ? "guitar" : "",
@@ -48,7 +55,7 @@ for (let pass = 0; pass < 20; pass += 1) {
   Catalog.groupLessons(browsed, "topic", "time", { index: loadedIndex });
 }
 const browseElapsed = Number(process.hrtime.bigint() - browseStarted) / 1e6;
-assert(browseElapsed < 4000, "browsing 4564 lessons took " + browseElapsed.toFixed(0) + "ms");
+assert(browseElapsed < 8000, "browsing the full catalog took " + browseElapsed.toFixed(0) + "ms");
 console.log("browse pass " + browseElapsed.toFixed(0) + "ms");
 assert(JSON.stringify(facets.structures) === JSON.stringify(["structured", "casual"]));
 assert(JSON.stringify(facets.levels) === JSON.stringify(["beginner", "intermediate", "advanced"]));
@@ -93,6 +100,7 @@ function lesson(overrides) {
     instrument: "guitar",
     structure: "casual",
     level: "beginner",
+    discipline: "Guitar (electric/acoustic)",
     description: "A lesson description.",
     ytmusictrainer_url: Catalog.trainerUrl(id),
   }, extra);
@@ -112,7 +120,7 @@ assert(validate([lesson({ tradition: "latin-caribbean" })], facets).length === 0
 const unleveled = lesson();
 delete unleveled.level;
 assert(validate([unleveled], facets).length === 0, "level is optional");
-assert(validate([lesson({ instrument: "oud" })], facets).some((error) => error.includes("instrument")), "unknown instrument");
+assert(validate([lesson({ instrument: "kazoo" })], facets).some((error) => error.includes("instrument")), "unknown instrument");
 assert(validate([lesson({ tradition: "baroque" })], facets).some((error) => error.includes("tradition")), "unknown tradition");
 const openFacets = { instruments: [], traditions: [], styles: [], topics: [], structures: [], levels: [], in_the_style_of: [] };
 assert(validate([lesson({ instrument: "oud", tradition: "baroque", topics: ["ear training"], style: "hip-hop" })], openFacets).length === 0, "empty facet lists stay open");
@@ -204,7 +212,7 @@ const beta = lesson({
   level: "intermediate",
   structure: "casual",
   year: 2024,
-  duration_seconds: 30,
+  duration_seconds: 120,
   title: 'Hello, "world"',
   description: "Line one\nLine two",
 });
@@ -356,13 +364,14 @@ for (const file of ["index.html", "embed-demo.html", "css/styles.css", "js/app.j
 }
 
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-for (const ref of ["css/styles.css", "js/catalog.js", "js/view.js", "js/app.js", "favicon.svg", "data/lessons.json"]) {
+for (const ref of ["css/styles.css", "js/catalog.js", "js/view.js", "js/app.js", "favicon.svg", "data/catalog.json"]) {
   const bundle = ref.endsWith(".json") ? fs.readFileSync(path.join(root, "js/app.js"), "utf8") : html;
   assert(bundle.includes(ref), "missing " + ref);
 }
 assert(html.includes("data/facets.json") === false);
-assert(fs.readFileSync(path.join(root, "js/app.js"), "utf8").includes("data/facets.json"), "the page loads facets when present");
-const ids = ["summary", "stats", "theme", "q", "channel", "instrument", "style", "style-of", "tradition", "topic", "structure", "level", "sort", "status", "facet-note", "results", "discover", "discover-body", "channel-heading", "channel-count", "channel-list", "tradition-heading", "tradition-count", "tradition-list", "style-of-heading", "style-of-count", "style-of-list"];
+assert(fs.readFileSync(path.join(root, "js/app.js"), "utf8").includes("data/catalog.json"), "the page loads the packed catalog");
+assert(!fs.readFileSync(path.join(root, "js/app.js"), "utf8").includes("data/lessons.json"), "the page does not download the raw lesson file");
+const ids = ["summary", "stats", "theme", "q", "channel", "discipline", "instrument", "style", "style-of", "tradition", "topic", "structure", "level", "sort", "status", "facet-note", "results", "discover", "discover-body", "channel-heading", "channel-count", "channel-list", "discipline-heading", "discipline-count", "discipline-list", "tradition-heading", "tradition-count", "tradition-list", "style-of-heading", "style-of-count", "style-of-list"];
 const shell = FinderView.shellHtml();
 for (const id of ids) {
   assert(html.includes('id="' + id + '"'), "page missing " + id);
@@ -547,11 +556,13 @@ const versionFile = JSON.parse(fs.readFileSync(path.join(built, "version.json"),
 const catalogFile = JSON.parse(fs.readFileSync(path.join(built, "catalog.json"), "utf8"));
 assert(versionFile.version === "1" && catalogFile.version === "1", "schema version 1");
 assert(versionFile.generated_at === catalogFile.generated_at && /^\d{4}-\d{2}-\d{2}T/.test(versionFile.generated_at), "generated_at");
-assert(catalogFile.lessons.length === lessons.length, "catalog.json lessons");
-assert(catalogFile.lessons.length === 4564 && catalogFile.facets.instruments.includes("voice") && catalogFile.facets.traditions.includes("latin-caribbean"), "catalog.json facets");
-const catalogChannels = new Set(catalogFile.lessons.map((item) => item.channel_id));
-assert(catalogChannels.size === 70, "catalog channel count");
-for (const style of ["fusion", "metal", "country", "rnb-soul", "rock"]) {
+const unpackedCatalog = Catalog.unpackCatalog(catalogFile);
+assert(unpackedCatalog.lessons.length === lessons.length, "catalog.json lessons");
+assert(unpackedCatalog.lessons.length === 40721 && catalogFile.facets.instruments.includes("violin") && catalogFile.facets.styles.includes("rockabilly") && catalogFile.facets.labels.topics.tapping === "Tapping / two-hand", "catalog.json facets");
+const catalogChannels = new Set(unpackedCatalog.lessons.map((item) => item.channel_id));
+assert(catalogChannels.size === 726, "catalog channel count");
+assert(fs.existsSync(path.join(built, "shards", Catalog.disciplineSlug("Rockabilly (added scope)") + ".json")), "rockabilly shard");
+for (const style of ["fusion", "metal", "country", "rnb-soul", "rock", "rockabilly", "film-game"]) {
   assert(catalogFile.facets.styles.includes(style), "catalog style " + style);
 }
 const embedOut = path.join(built, "embed.js");

@@ -26,7 +26,7 @@ node scripts/build-embed.js
 
 ## Add a lesson
 
-Append an object to `data/lessons.json`. The file currently holds the researched catalog (4,564 lessons, 70 channels). Keep a new video out until its id, channel, and duration have been checked.
+Append an object to `data/lessons.json`. The file currently holds the researched catalog (40,721 lessons, 726 channels). Every lesson has a `discipline`. Keep a new video out until its id, channel, and duration have been checked. Running time must be at least 90 seconds.
 
 ```json
 {
@@ -71,7 +71,9 @@ The catalog lists are:
 - traditions: western, indian-hindustani, west-african, arabic-maqam, flamenco, microtonal, brazilian, latin-caribbean, indian-carnatic
 - topics: technique, theory, song-tutorial, improvisation, sound-design, rhythm-groove, chords, practice, gear-tone, scales, ear-training, reading, songwriting
 
-`styles` lists the styles in the catalog, including fusion, metal, country, and rnb-soul. `in_the_style_of` stays empty, so any artist name is accepted until that list is filled in. Once a list is non-empty, new values have to be added there too. A channel with many lessons is paged 12 at a time inside its group, and the channel list itself is paged 12 channels at a time.
+`styles` lists the styles in the catalog, including rockabilly, film-game, fusion, metal, country, and rnb-soul. The topic `tapping` is labeled "Tapping / two-hand". `disciplines` is its own filter and browse mode. `in_the_style_of` stays empty, so any artist name is accepted until that list is filled in. Once a list is non-empty, new values have to be added there too.
+
+The browser does not download `lessons.json`. The Pages build writes a packed `data/catalog.json` for search and filters, and `data/shards/<discipline>.json` files that supply descriptions for the lessons on screen. Channels and the lessons inside a channel are paged 12 at a time.
 
 ## Spreadsheet
 

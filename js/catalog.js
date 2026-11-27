@@ -16,6 +16,32 @@
     return String(a).localeCompare(String(b), undefined, { sensitivity: "base" });
   }
 
+  // Dropdown labels: case-insensitive, and "Track 2" before "Track 10".
+  function compareOptionLabels(a, b) {
+    return String(a).localeCompare(String(b), undefined, { sensitivity: "base", numeric: true });
+  }
+
+  // "All", "Any", and "All instruments" stay at the top of a select.
+  function isPlaceholderOption(value) {
+    return /^(?:all|any)(?:\s|$)/i.test(String(value == null ? "" : value).trim());
+  }
+
+  function sortOptionValues(values, labeler) {
+    const labelFor = (value) => {
+      if (!labeler) return value == null ? "" : String(value);
+      const label = labeler(value);
+      return label == null ? "" : String(label);
+    };
+    const placeholders = [];
+    const rest = [];
+    for (const value of values || []) {
+      if (isPlaceholderOption(labelFor(value)) || isPlaceholderOption(value)) placeholders.push(value);
+      else rest.push(value);
+    }
+    rest.sort((a, b) => compareOptionLabels(labelFor(a), labelFor(b)) || compareOptionLabels(a, b));
+    return placeholders.concat(rest);
+  }
+
   function fold(value) {
     return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   }
@@ -684,6 +710,9 @@
     CSV_HEADERS,
     YT_TRAINER_BASE,
     compareNames,
+    compareOptionLabels,
+    isPlaceholderOption,
+    sortOptionValues,
     fold,
     isSlug,
     isInstrument,

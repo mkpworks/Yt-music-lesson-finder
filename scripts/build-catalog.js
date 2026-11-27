@@ -11,11 +11,25 @@ const facetPath = path.join(root, "data", "facets.json");
 const facets = fs.existsSync(facetPath) ? JSON.parse(fs.readFileSync(facetPath, "utf8")) : {};
 const generatedAt = new Date().toISOString();
 const packed = Catalog.packLessons(lessons);
+
+// Levels stay beginner → advanced. Every other vocabulary is alphabetical by its display label.
+function withSortedFacets(source) {
+  if (!source || typeof source !== "object" || Array.isArray(source)) return source;
+  const copy = Object.assign({}, source);
+  const preserve = new Set(["levels"]);
+  for (const key of Object.keys(copy)) {
+    if (preserve.has(key) || !Array.isArray(copy[key])) continue;
+    const labels = copy.labels && copy.labels[key];
+    copy[key] = Catalog.sortOptionValues(copy[key], (value) => Catalog.labelOf(value, labels));
+  }
+  return copy;
+}
+
 const catalog = Object.assign({
   version: Catalog.SCHEMA_VERSION,
   generated_at: generatedAt,
   packing: "rows",
-  facets,
+  facets: withSortedFacets(facets),
 }, packed);
 const version = {
   version: Catalog.SCHEMA_VERSION,

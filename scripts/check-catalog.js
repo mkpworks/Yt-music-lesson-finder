@@ -161,6 +161,11 @@ assert(Catalog.labelOf("indian-hindustani") === "Indian Hindustani");
 assert(Catalog.labelOf("song tutorial") === "Song Tutorial");
 assert(Catalog.labelOf("Buddy Guy") === "Buddy Guy");
 assert(Catalog.fold("José") === "jose");
+assert(Catalog.compareOptionLabels("funk", "Triads") < 0, "Funk before Triads");
+assert(Catalog.compareOptionLabels("Track 2", "Track 10") < 0, "natural numeric order");
+assert(Catalog.compareOptionLabels("José", "jose") === 0, "option sort ignores case and accents");
+assert(Catalog.sortOptionValues(["Triads", "Funk", "All instruments", "Track 10", "Track 2", "Any"]).join("|") === "All instruments|Any|Funk|Track 2|Track 10|Triads", "placeholders stay first");
+assert(Catalog.sortOptionValues(["Zebra", "any style", "Apple", "ALL"]).join("|") === "any style|ALL|Apple|Zebra", "placeholder order is stable");
 
 const facetIndex = Catalog.buildIndex([], facets);
 assert(JSON.stringify(facetIndex.instruments) === JSON.stringify(facets.instruments), "instrument order follows facets");
@@ -415,6 +420,51 @@ function withPage(hostname, href, fn) {
   }
 }
 
+function optionValues(html) {
+  const values = [];
+  const re = /<option\b[^>]*\bvalue="([^"]*)"/g;
+  let match;
+  while ((match = re.exec(html))) values.push(match[1].replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">"));
+  return values;
+}
+
+function mountHost(mountLessons, mountFacets) {
+  return withPage("example.com", "https://example.com/lesson-finder/", () => {
+    const nodes = new Map();
+    function el() {
+      return {
+        value: "",
+        hidden: false,
+        disabled: false,
+        textContent: "",
+        innerHTML: "",
+        classList: { add() {}, contains() { return false; } },
+        setAttribute() {},
+        getAttribute() { return null; },
+        addEventListener() {},
+        focus() {},
+        scrollIntoView() {},
+      };
+    }
+    const host = {
+      activeElement: null,
+      getElementById(id) {
+        if (!nodes.has(id)) nodes.set(id, el());
+        return nodes.get(id);
+      },
+      querySelectorAll() { return []; },
+      addEventListener() {},
+    };
+    FinderView.mount(host, {
+      lessons: mountLessons,
+      facets: mountFacets || facets,
+      themeTarget: { getAttribute() { return "dark"; }, setAttribute() {} },
+      persistTheme: false,
+    });
+    return host;
+  });
+}
+
 function finderMarkup(hostname) {
   return withPage(hostname, "https://" + (hostname || "example.com") + "/lesson-finder/", () => {
     const nodes = new Map();
@@ -451,6 +501,41 @@ function finderMarkup(hostname) {
     return host.getElementById("results").innerHTML + host.getElementById("discover-body").innerHTML;
   });
 }
+
+const selectHost = mountHost([
+  lesson({ id: "aaaaaaaaaaa", channel_name: "Studio 10", channel_id: channelId("a"), in_the_style_of: "Triads", instrument: "guitar", style: "funk" }),
+  lesson({ id: "bbbbbbbbbbb", channel_name: "Studio 2", channel_id: channelId("b"), title: "Other lesson", in_the_style_of: "Funk", instrument: "Funk", style: "blues" }),
+], {
+  instruments: ["Triads", "guitar", "All instruments", "Funk"],
+  styles: ["funk", "blues"],
+  traditions: ["western", "latin-caribbean"],
+  topics: ["theory", "technique"],
+  structures: ["structured", "casual"],
+  levels: ["beginner", "intermediate", "advanced"],
+  disciplines: ["Voice", "Guitar (electric/acoustic)"],
+  in_the_style_of: [],
+  labels: {
+    instruments: { guitar: "Guitar", Funk: "Funk", Triads: "Triads", "All instruments": "All instruments" },
+    styles: { funk: "Funk", blues: "Blues" },
+    traditions: { western: "Western", "latin-caribbean": "Latin / Caribbean" },
+    topics: { theory: "Theory", technique: "Technique" },
+    structures: { structured: "Structured", casual: "Casual" },
+    levels: { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" },
+    disciplines: { Voice: "Voice", "Guitar (electric/acoustic)": "Guitar (electric/acoustic)" },
+  },
+});
+assert(optionValues(selectHost.getElementById("channel").innerHTML).join() === ["All", channelId("b"), channelId("a")].join(), "channel options use natural order");
+assert(optionValues(selectHost.getElementById("instrument").innerHTML).join("|") === "All|All instruments|Funk|guitar|Triads", "instrument placeholders stay first");
+assert(optionValues(selectHost.getElementById("style").innerHTML).join("|") === "All|blues|funk", "style options follow labels");
+assert(optionValues(selectHost.getElementById("style-of").innerHTML).join("|") === "All|Funk|Triads", "style-of options are alphabetical");
+assert(optionValues(selectHost.getElementById("tradition").innerHTML).join("|") === "All|latin-caribbean|western", "tradition options follow labels");
+assert(optionValues(selectHost.getElementById("topic").innerHTML).join("|") === "All|technique|theory", "topic options follow labels");
+assert(optionValues(selectHost.getElementById("discipline").innerHTML).join("|") === "All|Guitar (electric/acoustic)|Voice", "discipline options are alphabetical");
+assert(optionValues(selectHost.getElementById("structure").innerHTML).join("|") === "All|casual|structured", "structure options follow labels");
+assert(optionValues(selectHost.getElementById("level").innerHTML).join("|") === "All|beginner|intermediate|advanced", "level options stay in difficulty order");
+const sortMenu = '<option value="channel">Channel A–Z</option><option value="year">Year (oldest first)</option><option value="time">Running time (longest)</option>';
+assert(shell.includes(sortMenu), "sort menu stays in menu order");
+assert(/<option value="channel">Channel A–Z<\/option>\s*<option value="year">Year \(oldest first\)<\/option>\s*<option value="time">Running time \(longest\)<\/option>/.test(html), "page sort menu stays in menu order");
 
 function anchors(html, className) {
   const found = [];
@@ -559,6 +644,24 @@ assert(versionFile.generated_at === catalogFile.generated_at && /^\d{4}-\d{2}-\d
 const unpackedCatalog = Catalog.unpackCatalog(catalogFile);
 assert(unpackedCatalog.lessons.length === lessons.length, "catalog.json lessons");
 assert(unpackedCatalog.lessons.length === 40721 && catalogFile.facets.instruments.includes("violin") && catalogFile.facets.styles.includes("rockabilly") && catalogFile.facets.labels.topics.tapping === "Tapping / two-hand", "catalog.json facets");
+function facetLabels(list, group) {
+  const labels = catalogFile.facets.labels && catalogFile.facets.labels[group];
+  return list.map((value) => Catalog.labelOf(value, labels));
+}
+function labelsAreSorted(list) {
+  for (let i = 1; i < list.length; i += 1) {
+    if (Catalog.compareOptionLabels(list[i - 1], list[i]) > 0) return false;
+  }
+  return true;
+}
+assert(labelsAreSorted(facetLabels(catalogFile.facets.instruments, "instruments")), "built instruments are alphabetical");
+assert(labelsAreSorted(facetLabels(catalogFile.facets.styles, "styles")), "built styles are alphabetical");
+assert(labelsAreSorted(facetLabels(catalogFile.facets.traditions, "traditions")), "built traditions are alphabetical");
+assert(labelsAreSorted(facetLabels(catalogFile.facets.topics, "topics")), "built topics are alphabetical");
+assert(labelsAreSorted(facetLabels(catalogFile.facets.disciplines, "disciplines")), "built disciplines are alphabetical");
+assert(labelsAreSorted(facetLabels(catalogFile.facets.structures, "structures")), "built structures are alphabetical");
+assert(catalogFile.facets.instruments[0] === "accordion", "built instruments no longer follow the curated source order");
+assert(JSON.stringify(catalogFile.facets.levels) === JSON.stringify(["beginner", "intermediate", "advanced"]), "built levels stay in difficulty order");
 const catalogChannels = new Set(unpackedCatalog.lessons.map((item) => item.channel_id));
 assert(catalogChannels.size === 726, "catalog channel count");
 assert(fs.existsSync(path.join(built, "shards", Catalog.disciplineSlug("Rockabilly (added scope)") + ".json")), "rockabilly shard");

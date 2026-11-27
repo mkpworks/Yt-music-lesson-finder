@@ -351,10 +351,13 @@
         state.inTheStyleOf === "All";
     }
 
-    function fillSelect(id, values, labeler, titleFor) {
+    function fillSelect(id, values, labeler, titleFor, selectOptions) {
       const select = byId(id);
+      const source = selectOptions && selectOptions.preserveOrder
+        ? values
+        : Catalog.sortOptionValues(values, labeler || ((value) => value));
       const choices = ['<option value="All">All</option>'];
-      for (const value of values) {
+      for (const value of source) {
         const label = labeler ? labeler(value) : value;
         const title = titleFor ? titleFor(value) : "";
         const titleAttr = title ? ' title="' + esc(title) + '"' : "";
@@ -885,7 +888,8 @@
     state.pickId = lessons[0] ? lessons[0].id : "";
     bind();
     const channelSelect = byId("channel");
-    channelSelect.innerHTML = '<option value="All">All</option>' + index.channels.map((channel) => {
+    const channels = Catalog.sortOptionValues(index.channels, (channel) => channel.channel_name);
+    channelSelect.innerHTML = '<option value="All">All</option>' + channels.map((channel) => {
       const count = index.channelCount[channel.channel_id] || 0;
       return '<option value="' + esc(channel.channel_id) + '">' + esc(channel.channel_name) + " · " + count + "</option>";
     }).join("");
@@ -896,7 +900,7 @@
     fillSelect("tradition", index.traditions, (value) => facetLabel(value, "tradition"), (value) => Catalog.facetNote(index, "traditions", value));
     fillSelect("topic", index.topics, (value) => facetLabel(value, "topic"));
     fillSelect("structure", index.structures, (value) => facetLabel(value, "structure"));
-    fillSelect("level", index.levels, (value) => facetLabel(value, "level"));
+    fillSelect("level", index.levels, (value) => facetLabel(value, "level"), null, { preserveOrder: true });
     const seconds = lessons.reduce((sum, lesson) => sum + (lesson.duration_seconds || 0), 0);
     const stats = byId("stats");
     if (stats) {
